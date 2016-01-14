@@ -3,6 +3,7 @@
 # CopyPolicy: Released under the terms of the GNU GPL v2.0.
 
 add_subdirectory(karmaManager)
+add_subdirectory(karmaOPC)
 add_subdirectory(karmaMotor)
 add_subdirectory(karmaLearn)
 add_subdirectory(karmaToolProjection)

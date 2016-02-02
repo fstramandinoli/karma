@@ -26,3 +26,8 @@
 # Linux temp files
 *~
 
+/datiTracker
+
+notesTest_stramakarmaOPC.txt
+app/scripts/stramaKarmaOPC_BKP.xml
+app/scripts/TRACKING-OBJETCS.xml

@@ -136,18 +136,128 @@ class KarmaOPC : public RFModule
             return false;
     }
 
+	/**********************************************************/
+	CvPoint getBlobCOG(const Bottle &blobs, const int i)
+	{
+		CvPoint cog = cvPoint(RET_INVALID, RET_INVALID);
+		if ((i >= 0) && (i<blobs.size()))
+		{
+			CvPoint tl, br;
+			Bottle *item = blobs.get(i).asList();
+			if (item == NULL)
+				return cog;
+
+			tl.x = (int)item->get(0).asDouble();
+			tl.y = (int)item->get(1).asDouble();
+			br.x = (int)item->get(2).asDouble();
+			br.y = (int)item->get(3).asDouble();
+
+			cog.x = (tl.x + br.x) >> 1;
+			cog.y = (tl.y + br.y) >> 1;
+		}
+		return cog;
+	}
+
+	/**********************************************************/
+	Bottle findClosestBlob(const Bottle &blobs, const CvPoint &loc)
+	{
+		int ret = RET_INVALID;
+		double min_d2 = std::numeric_limits<double>::max();
+		Bottle pointReturn;
+		pointReturn.clear();
+		for (int i = 0; i<blobs.size(); i++)
+		{
+			CvPoint cog = getBlobCOG(blobs, i);
+			if ((cog.x == RET_INVALID) || (cog.y == RET_INVALID))
+				continue;
+
+			double dx = loc.x - cog.x;
+			double dy = loc.y - cog.y;
+			double d2 = dx*dx + dy*dy;
+
+			if (d2<min_d2)
+			{
+				min_d2 = d2;
+				ret = i;
+			}
+		}
+		CvPoint cog = getBlobCOG(blobs, ret);
+		pointReturn.addDouble(cog.x);           //cog x
+		pointReturn.addDouble(cog.y);           //cog y
+		pointReturn.addInt(ret);                //index of blob
+		Bottle *item = blobs.get(ret).asList();
+		double orient = (double)item->get(4).asDouble();
+		int axe1 = item->get(5).asInt();
+		int axe2 = item->get(6).asInt();
+		pointReturn.addDouble(orient);
+		pointReturn.addInt(axe1);
+		pointReturn.addInt(axe2);
+		return pointReturn;
+	}
+
+	/*****************************************************/
+	int getRoiAverage(int x, int y)
+	{
+		int channel = -1;
+		
+		CvPoint loc;
+		loc.x = x;
+		loc.y = y;
+
+		//get blob list
+		Bottle *blobsList = blobsPort.read(false);
+		yDebug("blobs %s \n", blobsList->toString().c_str());
+
+		//get closest blob
+		Bottle blob = findClosestBlob(*blobsList, loc);
+		yDebug("blob is %s \n", blob.toString().c_str());
+		
+		//get image
+		cv::Mat img((IplImage*)imagePort.read(true)->getIplImage(), true);
+		Bottle *item = blobsList->get(blob.get(2).asInt()).asList();
+
+		int blobWidth = abs((int)item->get(2).asDouble() - (int)item->get(0).asDouble());
+		int blobHeight = abs((int)item->get(3).asDouble() - (int)item->get(1).asDouble());
+
+		if (blobHeight < 60)
+		{
+			int blobHeight = abs((int)item->get(3).asDouble() - (int)item->get(1).asDouble());
+			
+			//get blob mean
+			cv::Rect roi( (int)item->get(0).asDouble(), (int)item->get(1).asDouble(), blobWidth, blobHeight) ;
+
+			cv::Mat image_roi = img(roi);
+			//cvtColor(image_roi, image_roi, CV_BGR2RGB);
+
+			cv::Scalar avgPixel = cv::mean(image_roi);
+
+			//namedWindow("test", CV_WINDOW_AUTOSIZE);
+			//imshow("test", image_roi);
+			//waitKey(0);
+
+			yInfo("pixel avg = %lf %lf %lf \n", avgPixel.val[0], avgPixel.val[1], avgPixel.val[2]);
+
+		}
+		return channel;
+	}
+
 public:
     /*****************************************************/
     bool configure(ResourceFinder &rf)
     {
-        opcPort.open("/stramakarma/OPC");
-        motorPort.open("/stramakarma/motor");
-        arePort.open("/stramakarma/are");
-        trackOutPort.open("/stramakarma/track:o");
-        trackInPort.open("/stramakarma/track:i");
-        rpcPort.open("/stramakarma/rpc");
+		name = rf.find("name").asString().c_str();
+		
+		opcPort.open(("/" + name + "/OPC").c_str());
+		motorPort.open(("/" + name + "/motor").c_str());
+		arePort.open(("/" + name + "/are").c_str());
+		blobsPort.open(("/" + name + "/blobs:i").c_str());
+		imagePort.open(("/" + name + "/image:i").c_str());
+		trackOutPort.open(("/" + name + "/track:o").c_str());
+		trackInPort.open(("/" + name + "/track:i").c_str());
+		rpcPort.open(("/" + name + "/rpc").c_str());
         attach(rpcPort);
-        return true;
+        
+		return true;
     }
 
     /*****************************************************/

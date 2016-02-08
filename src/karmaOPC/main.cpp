@@ -166,14 +166,21 @@ class KarmaOPC : public RFModule
         options.addInt((int)point[0]);
         options.addInt((int)point[1]);
 
+        yDebug()<<"get3DPosition query:"<<are_cmd.toString();
         areGetPort.write(are_cmd,are_rep);
-        if (are_rep.size()>=3)
+        yDebug()<<"get3DPosition response:"<<are_rep.toString();
+        if (Bottle *b=are_rep.get(0).asList())
         {   
-            x.resize(3);
-            x[0]=are_rep.get(0).asDouble();
-            x[1]=are_rep.get(1).asDouble();
-            x[2]=are_rep.get(2).asDouble();
-            return true;
+            if (b->size()>=3)
+            {
+                x.resize(3);
+                x[0]=b->get(0).asDouble();
+                x[1]=b->get(1).asDouble();
+                x[2]=b->get(2).asDouble();
+                return true;
+            }
+            else
+                return false;
         }
         else
             return false;
@@ -374,16 +381,22 @@ public:
 
                     // retrieve displacement
                     if (Bottle *bPoint=trackInPort.read(false))
-                    {                        
-						yarp::sig::Vector point(2), x1;
-                        point[0]=bPoint->get(1).asInt();
-                        point[1]=bPoint->get(2).asInt();
-
-                        if (get3DPosition(point,x1))
+                    {
+                        yDebug()<<"Tracker input:"<<bPoint->toString();
+                        if (Bottle *b=bPoint->get(0).asList())
                         {
-                            reply.addVocab(ack);
-                            reply.addDouble(x1[0]-x0[0]);
-                            reply.addDouble(x1[1]-x0[1]);
+						    yarp::sig::Vector point(2), x1;
+                            point[0]=b->get(1).asInt();
+                            point[1]=b->get(2).asInt();
+
+                            if (get3DPosition(point,x1))
+                            {
+                                reply.addVocab(ack);
+                                reply.addDouble(x1[0]-x0[0]);
+                                reply.addDouble(x1[1]-x0[1]);
+                            }
+                            else
+                                reply.addVocab(nack);
                         }
                         else
                             reply.addVocab(nack);

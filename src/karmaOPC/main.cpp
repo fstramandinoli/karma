@@ -99,15 +99,22 @@ class KarmaOPC : public RFModule
                             list_bid.addInt(id);
                             Bottle &list_propSet=content.addList();
                             list_propSet.addString("propSet");
-                            list_propSet.addList().addString("position_3d");
-                            list_propSet.addList().addString("position_2d_left");
+							Bottle &list_props=list_propSet.addList();
+							list_props.addString("position_3d");
+							list_props.addString("position_2d_left");
 
-                            opcPort.write(opcCmd,opcReplyProp);
+							cout << "Query list " << opcCmd.toString().c_str() << endl;
+							
+							opcPort.write(opcCmd,opcReplyProp);
                             if (opcReplyProp.get(0).asVocab()==Vocab::encode("ack"))
                             {
                                 if (Bottle *propField=opcReplyProp.get(1).asList())
                                 {
-                                    int cnt=0;
+
+									cout << propField->size() << endl;
+									cout << propField->toString().c_str();
+
+									int cnt=0;
                                     if (Bottle *b=propField->find("position_3d").asList())
                                     {
                                         x.resize(3);
@@ -137,7 +144,7 @@ class KarmaOPC : public RFModule
     }
 
     /*****************************************************/
-    bool get3DPosition(const Vector &point, Vector &x)
+	bool get3DPosition(const yarp::sig::Vector &point, yarp::sig::Vector &x)
     {
         Bottle are_cmd,are_rep;
         are_cmd.addVocab(Vocab::encode("get"));
@@ -292,7 +299,18 @@ public:
         int ack=Vocab::encode("ack");
         int nack=Vocab::encode("nack");
 
-        if (cmd=="push")
+		
+		if (cmd =="test")
+		{
+			if (command.size() >= 3)
+			{
+				int x = command.get(1).asInt();
+				int y = command.get(2).asInt();
+				getRoiAverage(x, y);
+			}
+		}
+
+        else if (cmd=="push")
         {
             if (command.size()>=4)
             {
@@ -300,15 +318,19 @@ public:
                 double theta=command.get(2).asDouble();
                 double radius=command.get(3).asDouble();
 
-                Vector x0,bbox;
+				yarp::sig::Vector x0, bbox;
                 if (get3DObjLoc(objName,x0,bbox))
                 {
-                    // templatePFTracker
+					cout << "Send the initial position of object to Matlab" << endl;
+					reply.addVocab(ack);
+					reply.addDouble(x0[0]);
+					reply.addDouble(x0[1]);
+					reply.addDouble(x0[2]);
+
+					// activeParticleTrack
                     Bottle track_cmd;
                     track_cmd.addInt((int)((bbox[0]+bbox[2])/2.0));
                     track_cmd.addInt((int)((bbox[1]+bbox[3])/2.0));
-                    track_cmd.addInt(80);
-                    track_cmd.addInt(80);
                     trackOutPort.write(track_cmd);
 
                     // ARE
@@ -331,9 +353,9 @@ public:
                     // retrieve displacement
                     if (Bottle *bPoint=trackInPort.read(false))
                     {                        
-                        Vector point(2),x1;
-                        point[0]=bPoint->get(0).asInt();
-                        point[1]=bPoint->get(1).asInt();
+						yarp::sig::Vector point(2), x1;
+                        point[0]=bPoint->get(1).asInt();
+                        point[1]=bPoint->get(2).asInt();
 
                         if (get3DPosition(point,x1))
                         {
@@ -353,11 +375,13 @@ public:
                     are_cmd.addString("all");
                     arePort.write(are_cmd,are_rep);
                 }
-                else
-                    reply.addVocab(nack);
+				else {
+					reply.addVocab(nack);
+				}
             }
-            else
-                reply.addVocab(nack);
+			else {
+				reply.addVocab(nack);
+			}
             return true;
         }
         else

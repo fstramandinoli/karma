@@ -64,9 +64,10 @@ class KarmaOPC : public RFModule
             Bottle opcCmd,opcReply,opcReplyProp;
             opcCmd.addVocab(Vocab::encode("ask"));
             Bottle &content=opcCmd.addList().addList();
-            //content.addString("entity");
-            //content.addString("==");
-            //content.addString("object");
+            content.addString("entity");
+            content.addString("==");
+            content.addString("object");
+			content.addString("&&");			//added by Fra
             content.addString("name");
             content.addString("==");
             content.addString(objName.c_str());

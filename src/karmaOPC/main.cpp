@@ -17,44 +17,66 @@
 
 #include <string>
 #include <cmath>
-
+#include <cv.h>
+#include <highgui.h>
+#include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/opencv.hpp>
 #include <yarp/os/all.h>
 #include <yarp/sig/all.h>
 
+
+using namespace cv;
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 
 
+#define RET_INVALID -1
+
 /*****************************************************/
 class KarmaOPC : public RFModule
 {
-    RpcClient            opcPort;
-    RpcClient            motorPort;
-    RpcClient            arePort;
-    Port                 trackOutPort;
-    BufferedPort<Bottle> trackInPort;
-    RpcServer            rpcPort;
 
-    Mutex mutex;
+	string													name; //name of the module
+
+    RpcClient												opcPort;
+    RpcClient												motorPort;
+    RpcClient												arePort;
+
+	Port													trackOutPort;
+		
+	BufferedPort<Bottle>									blobsPort;
+    BufferedPort<Bottle>									trackInPort;
+	BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >	imagePort;
+
+    RpcServer												rpcPort;
+
+	yarp::os::Mutex mutex;
 
     /*****************************************************/
-    bool get3DObjLoc(const string &objName, Vector &x,
-                     Vector &bbox)
+    bool get3DObjLoc(const string &objName, yarp::sig::Vector &x,
+		yarp::sig::Vector &bbox)
     {
         if (opcPort.getOutputCount()>0)
         {
+			//Format: [ask] (("prop0" "<" <val0>) || ("prop1" ">=" <val1>) ...) 
             Bottle opcCmd,opcReply,opcReplyProp;
             opcCmd.addVocab(Vocab::encode("ask"));
             Bottle &content=opcCmd.addList().addList();
-            content.addString("entity");
-            content.addString("==");
-            content.addString("object");
+            //content.addString("entity");
+            //content.addString("==");
+            //content.addString("object");
             content.addString("name");
             content.addString("==");
             content.addString(objName.c_str());
 
+			yDebug("opc cmd is %s \n", opcCmd.toString().c_str());
+
             opcPort.write(opcCmd,opcReply);
+
+			yDebug("opc reply is %s \n", opcReply.toString().c_str());
+
             if (opcReply.size()>1)
             {
                 if (opcReply.get(0).asVocab()==Vocab::encode("ack"))

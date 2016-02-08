@@ -9,7 +9,7 @@ list(APPEND CMAKE_MODULE_PATH ${ICUB_MODULE_PATH})
 set(PROJECTNAME karma)
 
 file(GLOB conf    ${CMAKE_CURRENT_SOURCE_DIR}/conf/*.ini)
-file(GLOB scripts ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.template ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.ini)
+file(GLOB scripts ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.template ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.xml ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.ini)
 file(GLOB rad     ${CMAKE_CURRENT_SOURCE_DIR}/RAD/*.*)
                             
 find_package(YARP)

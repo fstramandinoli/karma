@@ -17,6 +17,7 @@
 
 #include <string>
 #include <cmath>
+#include <algorithm>
 #include <cv.h>
 #include <highgui.h>
 #include <opencv2/objdetect/objdetect.hpp>
@@ -39,10 +40,12 @@ class KarmaOPC : public RFModule
 {
 
 	string													name; //name of the module
+    string                                                  arm;
 
     RpcClient												opcPort;
     RpcClient												motorPort;
-    RpcClient												arePort;
+    RpcClient												areCmdPort;
+    RpcClient												areGetPort;
 
 	Port													trackOutPort;
 		
@@ -103,6 +106,7 @@ class KarmaOPC : public RFModule
 							Bottle &list_props=list_propSet.addList();
 							list_props.addString("position_3d");
 							list_props.addString("position_2d_left");
+                            list_props.addString(("kinematic_offset_"+arm).c_str());
 
 							cout << "Query list " << opcCmd.toString().c_str() << endl;
 							
@@ -132,6 +136,13 @@ class KarmaOPC : public RFModule
                                         cnt++;
                                     }
 
+                                    if (Bottle *b=propField->find(("kinematic_offset_"+arm).c_str()).asList())
+                                    {
+                                        if (cnt>=2)
+                                            for (int i=0; i< b->size(); i++)
+                                                x[i]+=b->get(i).asDouble();
+                                    }
+
                                     return (cnt>=2);
                                 }
                             }
@@ -155,7 +166,7 @@ class KarmaOPC : public RFModule
         options.addInt((int)point[0]);
         options.addInt((int)point[1]);
 
-        arePort.write(are_cmd,are_rep);
+        areGetPort.write(are_cmd,are_rep);
         if (are_rep.size()>=3)
         {   
             x.resize(3);
@@ -277,12 +288,14 @@ public:
     /*****************************************************/
     bool configure(ResourceFinder &rf)
     {
-		name = rf.find("name").asString().c_str();
+		name = rf.check("name",Value("stramakarma")).asString().c_str();
+        arm = rf.check("arm",Value("right")).asString().c_str();
 		
 		opcPort.open(("/" + name + "/OPC").c_str());
 		motorPort.open(("/" + name + "/motor").c_str());
-		arePort.open(("/" + name + "/are").c_str());
-		blobsPort.open(("/" + name + "/blobs:i").c_str());
+		areCmdPort.open(("/" + name + "/are/cmd").c_str());
+		areGetPort.open(("/" + name + "/are/get").c_str());
+        blobsPort.open(("/" + name + "/blobs:i").c_str());
 		imagePort.open(("/" + name + "/image:i").c_str());
 		trackOutPort.open(("/" + name + "/track:o").c_str());
 		trackInPort.open(("/" + name + "/track:i").c_str());
@@ -322,12 +335,6 @@ public:
 				yarp::sig::Vector x0, bbox;
                 if (get3DObjLoc(objName,x0,bbox))
                 {
-					cout << "Send the initial position of object to Matlab" << endl;
-					reply.addVocab(ack);
-					reply.addDouble(x0[0]);
-					reply.addDouble(x0[1]);
-					reply.addDouble(x0[2]);
-
 					// activeParticleTrack
                     Bottle track_cmd;
                     track_cmd.addInt((int)((bbox[0]+bbox[2])/2.0));
@@ -339,16 +346,30 @@ public:
                     are_cmd.addString("track");
                     are_cmd.addString("track");
                     are_cmd.addString("no_sacc");
-                    arePort.write(are_cmd,are_rep);
+                    areCmdPort.write(are_cmd,are_rep);
                     
                     // karmaMotor
                     Bottle motor_cmd,motor_rep;
+                    motor_cmd.addString("tool");
+                    motor_cmd.addString("attach");
+                    motor_cmd.addString(arm.c_str());
+                    motor_cmd.addDouble(0.0);
+                    motor_cmd.addDouble(0.0);
+                    motor_cmd.addDouble(0.0);
+                    motorPort.write(motor_cmd,motor_rep);
+
+                    motor_cmd.clear();
                     motor_cmd.addString(cmd);
                     motor_cmd.addDouble(x0[0]);
                     motor_cmd.addDouble(x0[1]);
-                    motor_cmd.addDouble(x0[2]);
+                    motor_cmd.addDouble(std::max(x0[2],-0.1));
                     motor_cmd.addDouble(theta);
                     motor_cmd.addDouble(radius);
+                    motorPort.write(motor_cmd,motor_rep);
+
+                    motor_cmd.clear();
+                    motor_cmd.addString("tool");
+                    motor_cmd.addString("remove");
                     motorPort.write(motor_cmd,motor_rep);
 
                     // retrieve displacement
@@ -374,7 +395,7 @@ public:
                     are_cmd.clear();
                     are_cmd.addString("home");
                     are_cmd.addString("all");
-                    arePort.write(are_cmd,are_rep);
+                    areCmdPort.write(are_cmd,are_rep);
                 }
 				else {
 					reply.addVocab(nack);
@@ -410,7 +431,8 @@ public:
         trackOutPort.close();
 		blobsPort.close();
 		imagePort.close();
-        arePort.close();
+        areCmdPort.close();
+        areGetPort.close();
         motorPort.close();
         opcPort.close();
         return true;

@@ -3,66 +3,30 @@
 <name>STRAMA-KARMA-OPC</name>
 
         <dependencies>
-                <!--<port>/icubSim/cam/left/out</port>
-                <port>/icub/cartesianController/left_arm/state:o</port>
-                <port>/icub/cartesianController/right_arm/state:o</port> 
-                <port>/wholeBodyDynamics/left_arm/cartesianEndEffectorWrench:o</port>
-                <port>/wholeBodyDynamics/right_arm/cartesianEndEffectorWrench:o</port>
-                <port>/iKinGazeCtrl/rpc</port>-->
         </dependencies>
+
         <module>
                 <name>karmaOPC</name>
-                <parameters>--name stramakarma</parameters>
-                <node>strama</node>
+                <parameters>--name stramakarma --arm right</parameters>
+                <node>icub19</node>
         </module>
-        
-        <!--<module>
-                <name>objectsPropertiesCollector</name>
-                <parameters>--name memory --db iol-memory.ini</parameters>
-                <node>strama</node>
-        </module>-->
-                
+                        
         <module>
                 <name>activeParticleTrack</name>
-                <node>icub15</node>
+                <node>icub19</node>
         </module>
         
         <module>
                 <name>yarpview</name>
-                <parameters>--name /viewer/traker</parameters>
-                <node>strama</node>
+                <parameters>--name /viewer/tracker</parameters>
+                <node>icub20</node>
         </module> 
-        
-       <!-- <module>
-                <name>actionsRenderingEngine</name>
-                <node>strama</node>
-        </module>
         
         <module>
                 <name>karmaMotor</name>
-                <node>strama</node>
-        </module> -->
+                <node>icub19</node>
+        </module>
 
-        <!--
-        <module>
-                <name>iolStateMachineHandler</name>
-                <node>icub15</node>
-        </module>         
-        <module>
-                <name>yarpdataplayer</name>
-                <node>strama</node>
-        </module>        
-        <module>
-                <name>yarplogger</name>
-                <node>strama</node>
-        </module>-->        
-        <!--
-        <module>
-                <name>yarpview</name>
-                <parameters>--name /viewer/origin</parameters>
-                <node>strama</node>
-        </module>  -->      
-     
         <!-- Connect Matlab to stramakarma -->
         <connection>
                 <from>/matlab/rpc</from>
@@ -97,13 +61,13 @@
          <!-- Send an image with tracking bounding box to the yarpviewer-->
         <connection>
                 <from>/activeParticleTrack/image:o</from>
-                <to>/viewer/traker</to>
+                <to>/viewer/tracker</to>
                 <protocol>udp</protocol>
         </connection>        
-        <!-- Send he image read from the left camera to the yarpviewer-->
+        <!-- Send the image read from the left camera to the yarpviewer-->
         <connection>
                 <from>/icub/camcalib/left/out</from>
-                <to>/viewer/traker</to>
+                <to>/viewer/tracker</to>
                 <protocol>udp</protocol>
         </connection>        
                
@@ -113,18 +77,21 @@
                 <protocol>tcp</protocol>
         </connection>
                         
-        <!--
         <connection>
-                <from>/stramakarma/are</from>
-                <to>/actionsRenderingEngine/OPC:io</to>
-                <protocol>udp</protocol>
+                <from>/stramakarma/are/cmd</from>
+                <to>/actionsRenderingEngine/cmd:io</to>
+                <protocol>tcp</protocol>
+        </connection> 
+        <connection>
+                <from>/stramakarma/are/get</from>
+                <to>/actionsRenderingEngine/get:io</to>
+                <protocol>tcp</protocol>
         </connection> 
         <connection>
                 <from>/stramakarma/motor</from>
-                <to>/karmaMotor/??????</to>
-                <protocol>udp</protocol>
+                <to>/karmaMotor/rpc</to>
+                <protocol>tcp</protocol>
         </connection>         
-        -->    
 </application>
 
 

@@ -87,8 +87,10 @@ class KarmaOPC : public RFModule
                         {
                             int id=idValues->get(0).asInt();
 
+							yDebug("object ID is %i \n", id);
+
                             // get the relevant properties
-                            // [get] (("id" <num>) ("propSet" ("position_3d" "position_2d_left")))
+                            // Format: [get] (("id" <num>) ("propSet" ("position_3d" "position_2d_left")))
                             opcCmd.clear();
                             opcCmd.addVocab(Vocab::encode("get"));
                             Bottle &content=opcCmd.addList();

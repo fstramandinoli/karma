@@ -27,6 +27,12 @@
                 <node>icub19</node>
         </module>
 
+        <module>
+                <name>yarpdatadumper</name>
+                <parameters>--name stramakarma-log</parameters>
+                <node>localhost</node>
+        </module>
+
         <!-- Connect Matlab to stramakarma -->
         <connection>
                 <from>/matlab/rpc</from>
@@ -91,7 +97,12 @@
                 <from>/stramakarma/motor</from>
                 <to>/karmaMotor/rpc</to>
                 <protocol>tcp</protocol>
-        </connection>         
+        </connection>
+        <connection>
+                <from>/stramakarma/log:o</from>
+                <to>/stramakarma-log</to>
+                <protocol>tcp</protocol>
+        </connection>        
 </application>
 
 

@@ -52,6 +52,7 @@ class KarmaOPC : public RFModule
 	BufferedPort<Bottle>									blobsPort;
     BufferedPort<Bottle>									trackInPort;
 	BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >	imagePort;
+    BufferedPort<Bottle>	                                logPort;
 
     RpcServer												rpcPort;
 
@@ -306,6 +307,7 @@ public:
 		imagePort.open(("/" + name + "/image:i").c_str());
 		trackOutPort.open(("/" + name + "/track:o").c_str());
 		trackInPort.open(("/" + name + "/track:i").c_str());
+        logPort.open(("/" + name + "/log:o").c_str());
 		rpcPort.open(("/" + name + "/rpc").c_str());
         attach(rpcPort);
         
@@ -320,18 +322,11 @@ public:
         int ack=Vocab::encode("ack");
         int nack=Vocab::encode("nack");
 
+        Bottle &log=logPort.prepare();
+        log=command;
 		
-		if (cmd =="test")
-		{
-			if (command.size() >= 3)
-			{
-				int x = command.get(1).asInt();
-				int y = command.get(2).asInt();
-				getRoiAverage(x, y);
-			}
-		}
-
-        else if (cmd=="push")
+        bool ret=false;
+        if (cmd=="push")
         {
             if (command.size()>=4)
             {
@@ -410,17 +405,22 @@ public:
                     are_cmd.addString("all");
                     areCmdPort.write(are_cmd,are_rep);
                 }
-				else {
+				else
 					reply.addVocab(nack);
-				}
             }
-			else {
+			else
 				reply.addVocab(nack);
-			}
-            return true;
+            
+            ret=true;
         }
         else
-            return RFModule::respond(command,reply);
+        {
+            ret=RFModule::respond(command,reply);
+        }
+
+        log.append(reply);
+        logPort.writeStrict();
+        return ret;
     }
 
     /*****************************************************/
@@ -440,6 +440,7 @@ public:
     bool close()
     {
         rpcPort.close();
+        logPort.close();
         trackInPort.close();
         trackOutPort.close();
 		blobsPort.close();

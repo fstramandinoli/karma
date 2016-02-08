@@ -383,6 +383,8 @@ public:
         rpcPort.close();
         trackInPort.close();
         trackOutPort.close();
+		blobsPort.close();
+		imagePort.close();
         arePort.close();
         motorPort.close();
         opcPort.close();

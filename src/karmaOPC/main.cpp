@@ -67,14 +67,16 @@ class KarmaOPC : public RFModule
 			//Format: [ask] (("prop0" "<" <val0>) || ("prop1" ">=" <val1>) ...) 
             Bottle opcCmd,opcReply,opcReplyProp;
             opcCmd.addVocab(Vocab::encode("ask"));
-            Bottle &content=opcCmd.addList().addList();
-            content.addString("entity");
-            content.addString("==");
-            content.addString("object");
-			content.addString("&&");			//added by Fra
-            content.addString("name");
-            content.addString("==");
-            content.addString(objName.c_str());
+            Bottle &content=opcCmd.addList();
+            Bottle &cond_1=content.addList();
+            cond_1.addString("entity");
+            cond_1.addString("==");
+            cond_1.addString("object");
+			content.addString("&&");
+            Bottle &cond_2=content.addList();
+            cond_2.addString("name");
+            cond_2.addString("==");
+            cond_2.addString(objName.c_str());
 
 			yDebug("opc cmd is %s \n", opcCmd.toString().c_str());
 
@@ -116,7 +118,6 @@ class KarmaOPC : public RFModule
                             {
                                 if (Bottle *propField=opcReplyProp.get(1).asList())
                                 {
-
 									cout << propField->size() << endl;
 									cout << propField->toString().c_str();
 
